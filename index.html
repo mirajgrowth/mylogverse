@@ -2,11 +2,133 @@
 <html>
 <head>
   <title>MyLogVerse</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {
+      margin: 0;
+      background: linear-gradient(black, #001a33);
+      color: gold;
+      font-family: Arial;
+      text-align: center;
+    }
+
+    h1 {
+      margin-top: 40px;
+      font-size: 40px;
+    }
+
+    .card {
+      background: rgba(255,255,255,0.05);
+      margin: 20px;
+      padding: 20px;
+      border-radius: 15px;
+    }
+
+    button {
+      padding: 10px 20px;
+      background: gold;
+      border: none;
+      cursor: pointer;
+      border-radius: 8px;
+      margin-top: 10px;
+    }
+
+    .moon {
+      font-size: 50px;
+      animation: spin 5s linear infinite;
+    }
+
+    @keyframes spin {
+      0% {transform: rotate(0deg);}
+      100% {transform: rotate(360deg);}
+    }
+  </style>
 </head>
+
 <body>
 
+  <div class="moon">🌙</div>
+
   <h1>🕌 MyLogVerse</h1>
-  <p>Prayer Time Tracker</p>
+  <h2>Prayer Time Tracker</h2>
+
+  <div class="card" id="times">
+    Loading prayer times...
+  </div>
+
+  <div class="card">
+    <h3>Track Your Salah ✅</h3>
+    <label><input type="checkbox"> Fajr</label><br>
+    <label><input type="checkbox"> Zuhr</label><br>
+    <label><input type="checkbox"> Asr</label><br>
+    <label><input type="checkbox"> Maghrib</label><br>
+    <label><input type="checkbox"> Isha</label><br>
+  </div>
+
+  <div class="card">
+    <h3>Next Prayer ⏳</h3>
+    <p id="countdown">Loading...</p>
+  </div>
+
+<script>
+fetch("https://api.aladhan.com/v1/timingsByCity?city=Barishal&country=Bangladesh")
+.then(res => res.json())
+.then(data => {
+  let t = data.data.timings;
+
+  document.getElementById("times").innerHTML = `
+    <p>Fajr: ${t.Fajr}</p>
+    <p>Zuhr: ${t.Dhuhr}</p>
+    <p>Asr: ${t.Asr}</p>
+    <p>Maghrib: ${t.Maghrib}</p>
+    <p>Isha: ${t.Isha}</p>
+  `;
+
+  let prayers = [
+    {name:"Fajr", time:t.Fajr},
+    {name:"Zuhr", time:t.Dhuhr},
+    {name:"Asr", time:t.Asr},
+    {name:"Maghrib", time:t.Maghrib},
+    {name:"Isha", time:t.Isha}
+  ];
+
+  function getNextPrayer() {
+    let now = new Date();
+    for (let p of prayers) {
+      let [h,m] = p.time.split(":");
+      let pt = new Date();
+      pt.setHours(h, m, 0);
+
+      if (pt > now) return {name:p.name, time:pt};
+    }
+    return null;
+  }
+
+  function updateCountdown() {
+    let next = getNextPrayer();
+    if (!next) return;
+
+    let now = new Date();
+    let diff = next.time - now;
+
+    let h = Math.floor(diff/1000/60/60);
+    let m = Math.floor((diff/1000/60)%60);
+    let s = Math.floor((diff/1000)%60);
+
+    document.getElementById("countdown").innerText =
+      next.name + " in " + h + "h " + m + "m " + s + "s";
+  }
+
+  setInterval(updateCountdown,1000);
+});
+
+document.querySelectorAll("input").forEach((box, i) => {
+  box.checked = localStorage.getItem("p"+i) === "true";
+  box.addEventListener("change", () => {
+    localStorage.setItem("p"+i, box.checked);
+  });
+});
+</script>
 
 </body>
 </html>
