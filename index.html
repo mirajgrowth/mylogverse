@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>MyLogVerse</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial;
+      background: linear-gradient(black,#001a33);
+      color: gold;
+      text-align: center;
+    }
+
+    h1 {margin-top:20px;}
+
+    .card {
+      margin: 15px;
+      padding: 20px;
+      border-radius: 15px;
+      background: rgba(255,255,255,0.05);
+    }
+  </style>
+</head>
+
+<body>
+
+<h1>🕌 MyLogVerse</h1>
+<h3>Prayer Tracker</h3>
+
+<div class="card" id="times">Loading...</div>
+
+<div class="card">
+  <h3>✅ Track Salah</h3>
+  <label><input type="checkbox"> Fajr</label>
+  <label><input type="checkbox"> Zuhr</label>
+  <label><input type="checkbox"> Asr</label>
+  <label><input type="checkbox"> Maghrib</label>
+  <label><input type="checkbox"> Isha</label>
+</div>
+
+<div class="card">
+  <h3>⏳ Next Prayer</h3>
+  <p id="countdown">Loading...</p>
+</div>
+
+<div class="card">
+  <h3>📊 Lifetime Total</h3>
+  <p id="total">Loading...</p>
+</div>
+
+<script>
+
+let total = JSON.parse(localStorage.getItem("totalNamaz")) || {
+  fajr:0, zuhr:0, asr:0, maghrib:0, isha:0
+};
+
+function updateTotalUI(){
+  document.getElementById("total").innerText =
+    `Fajr:${total.fajr} | Zuhr:${total.zuhr} | Asr:${total.asr} | Maghrib:${total.maghrib} | Isha:${total.isha}`;
+}
+
+document.querySelectorAll("input").forEach((box, i) => {
+  box.checked = localStorage.getItem("p"+i) === "true";
+
+  box.addEventListener("change", () => {
+    localStorage.setItem("p"+i, box.checked);
+
+    if(box.checked){
+      if(i==0) total.fajr++;
+      if(i==1) total.zuhr++;
+      if(i==2) total.asr++;
+      if(i==3) total.maghrib++;
+      if(i==4) total.isha++;
+
+      localStorage.setItem("totalNamaz", JSON.stringify(total));
+      updateTotalUI();
+    }
+  });
+});
+
+updateTotalUI();
+
+fetch("https://api.aladhan.com/v1/timingsByCity?city=Barishal&country=Bangladesh")
+.then(res => res.json())
+.then(data => {
+
+  let t = data.data.timings;
+
+  document.getElementById("times").innerHTML = `
+    Fajr: ${t.Fajr}<br>
+    Zuhr: ${t.Dhuhr}<br>
+    Asr: ${t.Asr}<br>
+    Maghrib: ${t.Maghrib}<br>
+    Isha: ${t.Isha}
+  `;
+
+  let prayers = [
+    {name:"Fajr", time:t.Fajr},
+    {name:"Zuhr", time:t.Dhuhr},
+    {name:"Asr", time:t.Asr},
+    {name:"Maghrib", time:t.Maghrib},
+    {name:"Isha", time:t.Isha}
+  ];
+
+  function updateCountdown(){
+    let now = new Date();
+
+    for (let p of prayers){
+      let [h,m] = p.time.split(":");
+      let pt = new Date();
+      pt.setHours(h,m,0);
+
+      if(pt > now){
+        let diff = pt - now;
+
+        let h1 = Math.floor(diff/1000/60/60);
+        let m1 = Math.floor((diff/1000/60)%60);
+        let s1 = Math.floor((diff/1000)%60);
+
+        document.getElementById("countdown").innerText =
+          p.name + " in " + h1 + "h " + m1 + "m " + s1 + "s";
+
+        break;
+      }
+    }
+  }
+
+  setInterval(updateCountdown,1000);
+
+});
+
+</script>
+
+</body>
+</html>
